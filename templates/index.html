@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Python AI Study</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.0/dist/css/bootstrap.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        header {
+            height: 80px;
+            background-color: darkorange;
+            color: #fff;
+            padding: 0 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+        }
+
+        #container {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #draw-board {
+            width: 280px;
+            height: 280px;
+            border: 1px solid #ccc;
+            cursor: cell;
+        }
+
+        #btn-container {
+            align-self: stretch;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 140px;
+        }
+
+        #btn-container button {
+            margin: 10px 0;
+        }
+
+        #rec-result {
+            width: 280px;
+            height: 280px;
+            font-size: 140px;
+            line-height: 280px;
+            text-align: center;
+            background-color: #eee;
+        }
+
+        #detail-chart {
+            width: 700px;
+            height: 400px;
+            margin: 10px auto;
+        }
+    </style>
+</head>
+<body>
+<header>
+    基于 MNIST 数据集的手写单个数字识别 Demo
+</header>
+
+<div id="container">
+    <canvas id="draw-board" width="280" height="280"></canvas>
+    <div id="btn-container">
+        <button type="button" class="btn btn-success" id="rec-btn">识别</button>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" value="" id="auto-rec-check" checked>
+            <label class="form-check-label" for="auto-rec-check">
+                自动识别
+            </label>
+        </div>
+        <button type="button" class="btn btn-secondary" id="clear-btn">重绘</button>
+    </div>
+    <div id="rec-result"></div>
+</div>
+
+<div id="detail-chart"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/dist/echarts.min.js"></script>
+<script>
+
+    function drawDataCharts(xArr, yArr) {
+        var chart = echarts.init(document.querySelector('#detail-chart'));
+        let option = {
+            xAxis: {
+                type: 'category',
+                data: xArr
+            },
+            yAxis: {
+                type: 'value'
+            },
+            legend: {
+                type: 'plain',
+                tooltip: {
+                    show: true
+                }
+            },
+            series: [{
+                name: '概率',
+                data: yArr,
+                type: 'bar',
+                itemStyle: {
+                    color: 'orange'
+                },
+                legendHoverLink: true
+            }]
+        };
+
+        chart.setOption(option);
+    }
+
+    function debounce(func, timeout) {
+        let slice = Array.prototype.slice;
+        let timer = null;
+        return function() {
+            if (timer) {
+                clearTimeout(timer);
+            }
+            let args = arguments;
+            let ctx = this;
+            timer = setTimeout(function() {
+                func.apply(ctx, slice.call(args));
+                clearInterval(timer);
+                timer = null;
+            }, timeout);
+        }
+    }
+
+    window.addEventListener("load", () => {
+        let canvas = document.querySelector('#draw-board')
+        let clearBtn = document.querySelector('#clear-btn')
+        let recBtn = document.querySelector('#rec-btn')
+        let autoRecCheck = document.querySelector('#auto-rec-check')
+        let recResult = document.querySelector('#rec-result')
+
+        let autoRec = autoRecCheck.checked;
+
+        autoRecCheck.addEventListener('click', e => {
+            autoRec = e.target.checked;
+        })
+
+        // 1 秒后触发自动识别
+        let checkDrawFinish = debounce(function() {
+            recBtn.click()
+        }, 1500)
+
+        let ctx = canvas.getContext('2d');
+
+        let beginPoint = null
+
+        canvas.addEventListener('mousedown', e => {
+            console.log(e.offsetX, e.offsetY)
+            beginPoint = {
+                x: e.offsetX,
+                y: e.offsetY
+            }
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            if (!beginPoint) return;
+
+            ctx.beginPath()
+            ctx.moveTo(beginPoint.x, beginPoint.y)
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.lineWidth = 20;
+            ctx.closePath();
+            ctx.strokeStyle = 'black';
+            ctx.lineCap = 'round'
+            ctx.stroke();
+
+            beginPoint.x = e.offsetX
+            beginPoint.y = e.offsetY
+        });
+
+        canvas.addEventListener('mouseup', e => {
+            beginPoint = null
+            if (autoRec) {
+                checkDrawFinish()
+            }
+        });
+
+        // 鼠标划出区域外后和 mouseup 一致，但不触发自动识别
+        canvas.addEventListener('mouseout', e => {
+            beginPoint = null
+        })
+
+        // 清空画布，只要将 canvas 的宽高重新赋值即可
+        clearBtn.addEventListener('click', () => {
+            canvas.width = canvas.width + 0
+            ctx.fillStyle = 'white'
+            ctx.fillRect(0, 0, canvas.width, canvas.height)
+            recResult.innerText = ''
+        })
+
+        clearBtn.click()
+
+        recBtn.addEventListener('click', e => {
+            let imageData = canvas.toDataURL('image/jpeg')
+            let imageBlob = dataURItoBlob(imageData)
+            let formData = new FormData();
+            formData.append('file', imageBlob)
+
+            let xhr = new XMLHttpRequest()
+            xhr.addEventListener('readystatechange', () => {
+                if (xhr.readyState === 4 && xhr.status >= 200 && xhr.status < 400) {
+                    let resp = xhr.responseText
+                    let json = JSON.parse(resp)
+                    console.log(json.value)
+                    let arr = json.value;
+                    let obj = {}
+                    arr.forEach((item, index) => {
+                        obj[String(item)] = index
+                    })
+
+                    // 降序排列
+                    arr.sort((a, b) => (b - a))
+
+                    let xArr = arr.map(item => (obj[String(item)]))
+                    let yArr = arr.map(item => (item * 100).toFixed(2))
+
+                    recResult.innerText = obj[String(arr[0])]
+
+                    drawDataCharts(xArr, yArr)
+                }
+            })
+            xhr.open('POST', '/upload', true)
+            xhr.send(formData)
+        })
+    });
+
+    function dataURItoBlob(dataURI) {
+        var byteString = atob(dataURI.split(',')[1]);
+        var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+        var ab = new ArrayBuffer(byteString.length);
+        var ia = new Uint8Array(ab);
+        for (var i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+        return new Blob([ab], {type: mimeString});
+    }
+</script>
+</body>
+</html>
