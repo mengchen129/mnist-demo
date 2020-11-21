@@ -10,6 +10,7 @@ test_images = []
 test_labels = []
 
 
+# 训练网络
 def init_network():
     global network, test_images, test_labels
 
@@ -39,26 +40,28 @@ def predict(img_file):
     global network
 
     img = Image.open(img_file)
+
+    # 转成灰度图像，具体算法可见注释
     img = img.convert('L')
+
+    # 缩放到 28*28
     img = img.resize((28, 28))
+
     np_img = np.array(img)
+
+    # 将黑白互换（反色），因为前端传入的是白底黑字，而训练的图是黑底白字
     np_img = 255 - np_img
+
+    # 增加一层维度，以适配网络预测输入格式
     np_img_arr = np.array([np_img])
+
+    # 将二维转成一维（28*28 => 1*784）
     np_img_arr = np_img_arr.reshape((1, 28 * 28))
+
+    # 处理成值在 0-1 内（之前是 0-255）
     np_img_arr = np_img_arr.astype('float32') / 255
 
     predict_result = network.predict(np_img_arr)
     print(predict_result)
     return predict_result[0].tolist()
 
-    # 找出概率最大值的下标
-    # max_index = np.argmax(np.array(predict_result[0]))
-    # print(max_index)
-    # return max_index
-
-
-if __name__ == '__main__':
-    init_network()
-    result = predict(2048)
-    maxIndex = np.argmax(np.array(result[0]))
-    print(maxIndex)

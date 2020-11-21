@@ -88,7 +88,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/dist/echarts.min.js"></script>
 <script>
-
+    /**
+     * 将预测结果展示在柱状图中
+     * @param xArr
+     * @param yArr
+     */
     function drawDataCharts(xArr, yArr) {
         var chart = echarts.init(document.querySelector('#detail-chart'));
         let option = {
@@ -119,6 +123,12 @@
         chart.setOption(option);
     }
 
+    /**
+     * 函数去抖
+     * @param func
+     * @param timeout
+     * @returns {function(): void}
+     */
     function debounce(func, timeout) {
         let slice = Array.prototype.slice;
         let timer = null;
@@ -149,7 +159,7 @@
             autoRec = e.target.checked;
         })
 
-        // 1 秒后触发自动识别
+        // 绘制完成后 1.5 秒后触发自动识别
         let checkDrawFinish = debounce(function() {
             recBtn.click()
         }, 1500)
@@ -170,12 +180,12 @@
             if (!beginPoint) return;
 
             ctx.beginPath()
+            ctx.lineCap = 'round'
             ctx.moveTo(beginPoint.x, beginPoint.y)
             ctx.lineTo(e.offsetX, e.offsetY);
-            ctx.lineWidth = 20;
+            ctx.lineWidth = 15;
             ctx.closePath();
             ctx.strokeStyle = 'black';
-            ctx.lineCap = 'round'
             ctx.stroke();
 
             beginPoint.x = e.offsetX
@@ -194,9 +204,9 @@
             beginPoint = null
         })
 
-        // 清空画布，只要将 canvas 的宽高重新赋值即可
+        // 清空画布，覆盖白色背景，清除识别结果
         clearBtn.addEventListener('click', () => {
-            canvas.width = canvas.width + 0
+            canvas.width = canvas.width + 0     // 只要将 canvas 的宽高重新赋值即可清空画布
             ctx.fillStyle = 'white'
             ctx.fillRect(0, 0, canvas.width, canvas.height)
             recResult.innerText = ''
@@ -216,18 +226,23 @@
                     let resp = xhr.responseText
                     let json = JSON.parse(resp)
                     console.log(json.value)
+
+                    // arr  一维数组，存储下标（即对应数字）与对应概率（0-1 范围）的关系
                     let arr = json.value;
+
+                    // obj 存储 arr 排序前概率与数值的反向对应关系
                     let obj = {}
                     arr.forEach((item, index) => {
                         obj[String(item)] = index
                     })
 
-                    // 降序排列
+                    // 按概率降序排列
                     arr.sort((a, b) => (b - a))
 
                     let xArr = arr.map(item => (obj[String(item)]))
                     let yArr = arr.map(item => (item * 100).toFixed(2))
 
+                    // 将概率最高的数字作为识别结果
                     recResult.innerText = obj[String(arr[0])]
 
                     drawDataCharts(xArr, yArr)
@@ -238,6 +253,11 @@
         })
     });
 
+    /**
+     * 将 base64 数据转换成 Blob 文件类型
+     * @param dataURI
+     * @returns {Blob}
+     */
     function dataURItoBlob(dataURI) {
         var byteString = atob(dataURI.split(',')[1]);
         var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];

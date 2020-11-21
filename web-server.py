@@ -12,6 +12,7 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 AI.init_network()
 
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -22,11 +23,11 @@ def upload():
     print(request.args)
     file = request.files['file']
     print(file)
+    # 保存上传的文件，用于测试验证
     file.save(os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file.filename)))
 
     result = AI.predict(file)
     return make_response(jsonify({'code': 0, 'msg': 'ok', 'value': result}), 200)
-
 
 
 if __name__ == '__main__':
