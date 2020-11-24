@@ -10,7 +10,7 @@ app.config['UPLOAD_FOLDER'] = 'upload/'
 # 模板文件更新时自动刷新，无需重启服务器
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
-AI.init_network()
+AI.init_network(network_type='conv')
 
 
 @app.route('/')

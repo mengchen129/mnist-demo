@@ -180,7 +180,8 @@
             if (!beginPoint) return;
 
             ctx.beginPath()
-            ctx.lineCap = 'round'
+            // ctx.lineCap = 'round'    // 可用可不用
+            ctx.lineJoin = 'round'      // 线段之间用圆实现平滑连接
             ctx.moveTo(beginPoint.x, beginPoint.y)
             ctx.lineTo(e.offsetX, e.offsetY);
             ctx.lineWidth = 15;
