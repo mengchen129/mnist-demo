@@ -13,7 +13,7 @@
 
         header {
             height: 80px;
-            background-color: darkorange;
+            background-color: deepskyblue;
             color: #fff;
             padding: 0 20px;
             display: flex;
@@ -66,7 +66,7 @@
 </head>
 <body>
 <header>
-    基于 MNIST 数据集的手写单个数字识别 Demo
+    基于 Python + Flask + Keras 的单个数字手写识别 Demo
 </header>
 
 <div id="container">
@@ -96,12 +96,21 @@
     function drawDataCharts(xArr, yArr) {
         var chart = echarts.init(document.querySelector('#detail-chart'));
         let option = {
+            textStyle: {
+                fontSize: 16
+            },
             xAxis: {
                 type: 'category',
-                data: xArr
+                data: xArr,
+                axisLabel: {
+                    fontSize: 16
+                }
             },
             yAxis: {
-                type: 'value'
+                type: 'value',
+                axisLabel: {
+                    fontSize: 16
+                }
             },
             legend: {
                 type: 'plain',
@@ -110,11 +119,15 @@
                 }
             },
             series: [{
-                name: '概率',
+                name: '概率 (%)',
                 data: yArr,
                 type: 'bar',
                 itemStyle: {
-                    color: 'orange'
+                    color: '#16b0fe'
+                },
+                label: {
+                    show: true,
+                    position: 'top',
                 },
                 legendHoverLink: true
             }]
@@ -216,10 +229,13 @@
         clearBtn.click()
 
         recBtn.addEventListener('click', e => {
-            let imageData = canvas.toDataURL('image/jpeg')
-            let imageBlob = dataURItoBlob(imageData)
+            canvas.toBlob(uploadFile, 'image/jpeg')
+        })
+
+        // 上传文件并处理返回结果
+        function uploadFile(file) {
             let formData = new FormData();
-            formData.append('file', imageBlob)
+            formData.append('file', file)
 
             let xhr = new XMLHttpRequest()
             xhr.addEventListener('readystatechange', () => {
@@ -251,24 +267,8 @@
             })
             xhr.open('POST', '/upload', true)
             xhr.send(formData)
-        })
-    });
-
-    /**
-     * 将 base64 数据转换成 Blob 文件类型
-     * @param dataURI
-     * @returns {Blob}
-     */
-    function dataURItoBlob(dataURI) {
-        var byteString = atob(dataURI.split(',')[1]);
-        var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-        var ab = new ArrayBuffer(byteString.length);
-        var ia = new Uint8Array(ab);
-        for (var i = 0; i < byteString.length; i++) {
-            ia[i] = byteString.charCodeAt(i);
         }
-        return new Blob([ab], {type: mimeString});
-    }
+    });
 </script>
 </body>
 </html>
